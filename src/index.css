@@ -1,0 +1,355 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --font-size: 16px;
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  /* Beauty-inspired color palette */
+  --background: #fefefe;
+  --foreground: #2d2d2d;
+  --card: #ffffff;
+  --card-foreground: #2d2d2d;
+  --popover: #ffffff;
+  --popover-foreground: #2d2d2d;
+  
+  /* Primary: Soft lavender */
+  --primary: #9b7fb8;
+  --primary-foreground: #ffffff;
+  --primary-light: #b399cc;
+  --primary-lighter: #d4c4e6;
+  
+  /* Secondary: Warm beige/rose */
+  --secondary: #f5f0eb;
+  --secondary-foreground: #6b5b73;
+  
+  /* Accent: Rose gold */
+  --accent: #e8c5a0;
+  --accent-foreground: #5d4e37;
+  
+  /* Muted: Soft neutrals */
+  --muted: #f8f6f3;
+  --muted-foreground: #8b7d8b;
+  
+  /* Success: Soft mint */
+  --success: #a8d8bc;
+  --success-foreground: #2d5a3d;
+  
+  /* Warning: Warm peach */
+  --warning: #f2c4a0;
+  --warning-foreground: #8b4513;
+  
+  --destructive: #e57373;
+  --destructive-foreground: #ffffff;
+  
+  --border: rgba(155, 127, 184, 0.15);
+  --input: rgba(155, 127, 184, 0.1);
+  --input-background: #faf9f7;
+  --switch-background: #e5dde8;
+  --ring: rgba(155, 127, 184, 0.3);
+  
+  /* Beauty-specific colors */
+  --beauty-pink: #f7e7e7;
+  --beauty-lavender: #e8dff5;
+  --beauty-gold: #f4e4bc;
+  --beauty-sage: #e8f0e8;
+  
+  --radius: 12px;
+  --shadow-soft: 0 2px 20px rgba(155, 127, 184, 0.08);
+  --shadow-medium: 0 4px 30px rgba(155, 127, 184, 0.12);
+  --shadow-strong: 0 8px 40px rgba(155, 127, 184, 0.18);
+  
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+}
+
+.dark {
+  --background: #1a1625;
+  --foreground: #f0ecf4;
+  --card: #201b2e;
+  --card-foreground: #f0ecf4;
+  --popover: #201b2e;
+  --popover-foreground: #f0ecf4;
+  --primary: #b399cc;
+  --primary-foreground: #1a1625;
+  --secondary: #2a2435;
+  --secondary-foreground: #d4c4e6;
+  --muted: #252034;
+  --muted-foreground: #9b8ea3;
+  --accent: #d4a574;
+  --accent-foreground: #1a1625;
+  --border: rgba(179, 153, 204, 0.2);
+  --input: rgba(179, 153, 204, 0.15);
+  --ring: rgba(179, 153, 204, 0.4);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-light: var(--primary-light);
+  --color-primary-lighter: var(--primary-lighter);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-beauty-pink: var(--beauty-pink);
+  --color-beauty-lavender: var(--beauty-lavender);
+  --color-beauty-gold: var(--beauty-gold);
+  --color-beauty-sage: var(--beauty-sage);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --shadow-soft: var(--shadow-soft);
+  --shadow-medium: var(--shadow-medium);
+  --shadow-strong: var(--shadow-strong);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-family);
+  }
+  
+  /* Smooth scrolling and better mobile experience */
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: var(--muted);
+    border-radius: 3px;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 3px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-light);
+  }
+}
+
+/**
+ * Enhanced typography with beauty-focused styling
+ */
+@layer base {
+  :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
+    h1 {
+      font-size: 2.25rem;
+      font-weight: var(--font-weight-bold);
+      line-height: 1.2;
+      letter-spacing: -0.025em;
+      color: var(--foreground);
+    }
+
+    h2 {
+      font-size: 1.875rem;
+      font-weight: var(--font-weight-semibold);
+      line-height: 1.3;
+      letter-spacing: -0.02em;
+      color: var(--foreground);
+    }
+
+    h3 {
+      font-size: 1.5rem;
+      font-weight: var(--font-weight-semibold);
+      line-height: 1.4;
+      letter-spacing: -0.01em;
+      color: var(--foreground);
+    }
+
+    h4 {
+      font-size: 1.25rem;
+      font-weight: var(--font-weight-medium);
+      line-height: 1.4;
+      color: var(--foreground);
+    }
+
+    h5 {
+      font-size: 1.125rem;
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+      color: var(--foreground);
+    }
+
+    h6 {
+      font-size: 1rem;
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+      color: var(--foreground);
+    }
+
+    p {
+      font-size: 1rem;
+      font-weight: var(--font-weight-normal);
+      line-height: 1.6;
+      color: var(--foreground);
+    }
+
+    small {
+      font-size: 0.875rem;
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+      color: var(--muted-foreground);
+    }
+
+    label {
+      font-size: 0.875rem;
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+      color: var(--foreground);
+    }
+
+    button {
+      font-size: 0.875rem;
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+      letter-spacing: 0.01em;
+    }
+
+    input, textarea, select {
+      font-size: 1rem;
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+  }
+}
+
+/* Custom utility classes for beauty design */
+@layer utilities {
+  .bg-gradient-beauty {
+    background: linear-gradient(135deg, var(--beauty-lavender) 0%, var(--beauty-pink) 50%, var(--beauty-gold) 100%);
+  }
+  
+  .bg-gradient-primary {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  }
+  
+  .shadow-beauty {
+    box-shadow: var(--shadow-soft);
+  }
+  
+  .shadow-beauty-md {
+    box-shadow: var(--shadow-medium);
+  }
+  
+  .shadow-beauty-lg {
+    box-shadow: var(--shadow-strong);
+  }
+  
+  .text-gradient-primary {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .border-gradient {
+    border: 1px solid transparent;
+    background: linear-gradient(var(--background), var(--background)) padding-box,
+                linear-gradient(135deg, var(--primary), var(--accent)) border-box;
+  }
+  
+  .glass-effect {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .mobile-safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .mobile-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Animation utilities */
+@layer utilities {
+  .animate-fade-in {
+    animation: fade-in 0.5s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slide-up 0.3s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scale-in 0.2s ease-out;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+html {
+  font-size: var(--font-size);
+}
