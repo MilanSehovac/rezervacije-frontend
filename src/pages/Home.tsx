@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import Hero from '../components/sections/Hero';
 import Categories from '../components/sections/Categories';
 import type { UserProfile } from '../components/types';
+import Features from '../components/sections/Features';
+import Testimonials from '../components/sections/Testimonials';
+import Cta from '../components/sections/Cta';
 const Home: React.FC = () => {
   const navigate = useNavigate();
 
@@ -38,6 +41,11 @@ const Home: React.FC = () => {
       />
       <Categories 
       onCategorySelect={handleCategorySelect}
+      />
+      <Features />
+      <Testimonials />
+      <Cta 
+      onGetStarted={handleGetStarted}
       />
     </div>
   );
