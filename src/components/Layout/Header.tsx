@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Button } from '../ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet'
 import { MapPin, Search, Sparkles, Calendar, Heart, User, Menu} from 'lucide-react'
@@ -17,6 +17,7 @@ const Header = ({
   userProfile,
   onAuthClick
 }: HeaderProps) => {
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
 
   const navigationItems = [
