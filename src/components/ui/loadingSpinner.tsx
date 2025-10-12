@@ -5,8 +5,9 @@ const override = {
 }
 interface LoadingSpinnerProps {
     loading: boolean;
+    singular: boolean;
 }
-const LoadingSpinner = ({ loading }: LoadingSpinnerProps) => {
+const LoadingSpinner = ({ loading, singular }: LoadingSpinnerProps) => {
 
   return (
     <>
@@ -17,7 +18,7 @@ const LoadingSpinner = ({ loading }: LoadingSpinnerProps) => {
         size={150}
         />
         <div className="font-bold text-6xl text-primary text-center">
-            Loading Salons
+            Loading {singular ? "Salon" : "Salons"}
         </div>
     </>
 
