@@ -220,7 +220,7 @@ export function SalonDirectory({}: SalonDirectoryProps) {
         </CardContent>
       </Card>
 
-      {loading ? (<LoadingSpinner loading={loading} />) : (
+      {loading ? (<LoadingSpinner loading={loading} singular={false} />) : (
         <>
           {/* Results Summary */}
           <div className="flex items-center justify-between">

@@ -2,6 +2,7 @@ import React from 'react'
 import { Card, CardContent } from '../ui/card'
 import { Button } from '../ui/button'
 import { ArrowRight, Phone } from 'lucide-react'
+import { Link } from 'react-router-dom'
 interface CtaProps {
     onGetStarted: () => void
 }
@@ -29,12 +30,16 @@ const Cta = ({onGetStarted} : CtaProps) => {
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
             <Button 
+              asChild
               variant="outline" 
               size="lg" 
-              className="border-white text-white hover:bg-white/10 h-14 px-8"
+              className="border-white hover:bg-white/10 h-14 px-8 hover:text-white"
             >
-              <Phone className="w-5 h-5 mr-2" />
-              Call Us: (555) 123-BEAUTY
+              <Link to={"tel:+38766452126"}>
+                <Phone className="w-5 h-5 mr-2" />
+                Call Us: (+387) 66 452 126
+              </Link>
+
             </Button>
           </div>
         </div>

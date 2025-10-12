@@ -195,7 +195,7 @@ const Footer: React.FC = () => {
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Copyright */}
           <div className="flex flex-col md:flex-row items-center gap-4 text-sm text-muted-foreground">
-            <p>&copy; 2024 BeautyBook. Powered by <Button variant="link" className="h-auto p-0 text-xs text-muted-foreground hover:text-primary"><Link to={'https://codevolt.ba'} target='_blank'>CodeVolt</Link></Button>.</p>
+            <p>&copy; 2025 BeautyBook. Powered by <Button variant="link" className="h-auto p-0 text-xs text-muted-foreground hover:text-primary"><Link to={'https://codevolt.ba'} target='_blank'>CodeVolt</Link></Button>.</p>
             <div className="flex items-center gap-4">
               <Button variant="link" className="h-auto p-0 text-xs text-muted-foreground hover:text-primary">
                 <Link to={'/privacy-policy'} >

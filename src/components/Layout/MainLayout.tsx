@@ -21,7 +21,10 @@ const MainLayout = () => {
                 </div>
             </main>
         <Footer />
-
+      <AuthModal 
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+      />
     </div>
   )
 }
