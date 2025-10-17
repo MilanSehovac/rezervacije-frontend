@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import axios from 'axios';
 import { Card, CardContent } from '../ui/card.tsx';
 import { Input } from '../ui/input.tsx';
 import { Button } from '../ui/button.tsx';
@@ -7,7 +8,6 @@ import { Badge } from '../ui/badge.tsx';
 import { SalonCard } from '../ui/salonCard.tsx';
 import type { Salon } from '../ui/salonCard.tsx';
 import LoadingSpinner from '../ui/loadingSpinner.tsx'
-
 import { 
   Search, 
   MapPin, 
@@ -35,7 +35,7 @@ export function SalonDirectory({}: SalonDirectoryProps) {
   useEffect(() => {
     const fetchSalons = async () =>{
       try {
-        const res = await fetch('/api/salons')
+        const res = await fetch(import.meta.env.VITE_API_URL + '/salons')
         const data = await res.json();
         setSalons(data)
       } catch (error) {
@@ -256,6 +256,7 @@ export function SalonDirectory({}: SalonDirectoryProps) {
                 </p>
                 <Button
                   variant="outline"
+                  className='cursor-pointer'
                   onClick={() => {
                     setSearchQuery('');
                     setSelectedCategory('all');

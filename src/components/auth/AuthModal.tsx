@@ -7,34 +7,120 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Checkbox } from "../ui/checkbox";
 import { Separator } from "../ui/separator";
+import axios from 'axios'
 
+interface FormData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  agreeTerms: boolean;
+  userType: number;
+}
 interface authModalProps{
   isOpen : boolean,
   onClose : () => void
 }
+
 export function AuthModal({isOpen, onClose}: authModalProps) {
   const [activeTab, setActiveTab] = useState('signin');
   const [accountType, setAccountType] = useState<'customer' | 'provider'>('customer');
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
     firstName: '',
     lastName: '',
-    phone: '',
-    confirmPassword: '',
-    agreeTerms: false
+    phoneNumber: '',
+    agreeTerms: false,
+    userType: 1,
   });
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const userdata = {
-      name: activeTab === 'signin' ? 'Demo User' : `${formData.firstName} ${formData.lastName}`,
-      email: formData.email,
-      type:accountType,
-      avatar: null
+  const isValidName = ([firstName, lastName]: [string, string]) => {
+    return firstName.trim().length > 0 && lastName.trim().length > 0;
+  };
+  const isValidEmail = (email: string) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  };
+  const isValidPhone = (phone: string) => {
+    const regex = /^\+?\d{10,15}$/;
+    return regex.test(phone);
+  };
+  const isValidPassword = (password: string) => {
+    const regex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+    return regex.test(password);
+  };
+  const validateForm = (formData: FormData) => {
+    if (!isValidName([formData.firstName, formData.lastName])) {
+      return "Please enter a valid first and last name";
     }
-    onClose();
-  }
+  
+    if (!isValidEmail(formData.email)) {
+      return "Please enter a valid email";
+    }
+  
+    if (!isValidPhone(formData.phoneNumber)) {
+      return "Please enter a valid phone number";
+    }
+  
+    if (!isValidPassword(formData.password)) {
+      return "Password must be at least 8 characters long and contain at least one number";
+    }
+  
+    if (!formData.agreeTerms) {
+      return "You must agree to the terms";
+    }
+  
+    return null;
+  };
+  const handleAccountTypeChange = (type: 'customer' | 'provider') => {
+    setAccountType(type);
+    setFormData((prev) => ({
+      ...prev,
+      userType: type === 'customer' ? 1 : 2,
+    }));
+  };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+  
+    if (activeTab === 'signin') {
+      await handleLogin();
+    } else {
+      await handleRegister();
+    }
+  };
+  const handleLogin = async () => {
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/users/login`, {
+        email: formData.email,
+        password: formData.password,
+      });
+      console.log("User logged in:", res.data);
+      
+      localStorage.setItem("token", res.data.token);
+      onClose();
+    } catch (error: any) {
+      console.error("Error logging in:", error.response?.data || error.message);
+      alert(error.response?.data?.message || "Login failed.");
+    }
+  };
+  const handleRegister = async () => {
+    const error = validateForm(formData);
+    if (error) {
+      alert(error);
+      return;
+    }
+  
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/users`, formData);
+      console.log("User created:", res.data);
+      onClose();
+    } catch (error: any) {
+      console.error("Error creating user:", error.response?.data || error.message);
+      alert(error.response?.data?.message || "Registration failed.");
+    }
+  };
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -61,31 +147,13 @@ export function AuthModal({isOpen, onClose}: authModalProps) {
         </DialogHeader>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-muted/50">
-            <TabsTrigger value="signin" className="data-[state=active]:bg-white">
+            <TabsTrigger value="signin" className="data-[state=active]:bg-white cursor-pointer">
               Sign In
             </TabsTrigger>
-            <TabsTrigger value="signup" className="data-[state=active]:bg-white">
+            <TabsTrigger value="signup" className="data-[state=active]:bg-white cursor-pointer">
               Sign Up
             </TabsTrigger>
           </TabsList>
-          <div className="mt-6">
-            <Label className="text-sm font-medium mb-3 block">I am a:</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <Button type="button" variant={accountType === 'customer' ? 'default' : 'outline'} onClick={() => setAccountType('customer')} className="h-12 flex-col gap-1">
-                <User className="w-4 h-4" />
-                <span className="text-xs">Customer</span>
-              </Button>
-              <Button
-                type="button"
-                variant={accountType === 'provider' ? 'default' : 'outline'}
-                onClick={() => setAccountType('provider')}
-                className="h-12 flex-col gap-1"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span className="text-xs">Salon Owner</span>
-              </Button>
-            </div>
-          </div>
           <TabsContent value="signin">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
@@ -114,7 +182,7 @@ export function AuthModal({isOpen, onClose}: authModalProps) {
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </Button>
@@ -124,24 +192,43 @@ export function AuthModal({isOpen, onClose}: authModalProps) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Checkbox 
-                    id="remember" 
+                    id="remember"
+                    className="cursor-pointer" 
                     checked={formData.agreeTerms}
                     onCheckedChange={(checked) => handleInputChange('agreeTerms', checked as boolean)}
                   />
                   <Label htmlFor="remember" className="text-sm">Remember me</Label>
                 </div>
-                <Button variant="link" className="px-0 h-auto text-sm text-primary">
+                <Button variant="link" className="px-0 h-auto text-sm text-primary cursor-pointer">
                   Forgot password?
                 </Button>
               </div>
 
-              <Button type="submit" className="w-full bg-gradient-primary h-12">
+              <Button type="submit" className="w-full bg-gradient-primary h-12 cursor-pointer">
                 Sign In
               </Button>
             </form>
           </TabsContent>
           <TabsContent value="signup">
             <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="mt-6">
+                  <Label className="text-sm font-medium mb-3 block">I am a:</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button type="button" variant={accountType === 'customer' ? 'default' : 'outline'} onClick={() => handleAccountTypeChange('customer')} className="cursor-pointer h-12 flex-col gap-1">
+                      <User className="w-4 h-4" />
+                      <span className="text-xs">Customer</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={accountType === 'provider' ? 'default' : 'outline'}
+                      onClick={() => handleAccountTypeChange('provider')}
+                      className="cursor-pointer h-12 flex-col gap-1"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span className="text-xs">Salon Owner</span>
+                    </Button>
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstName">First Name</Label>
@@ -189,8 +276,8 @@ export function AuthModal({isOpen, onClose}: authModalProps) {
                       id="phone"
                       type="tel"
                       placeholder="(555) 123-4567"
-                      value={formData.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      value={formData.phoneNumber}
+                      onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                       className="pl-10"
                       required
                     />
@@ -215,7 +302,7 @@ export function AuthModal({isOpen, onClose}: authModalProps) {
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 cursor-pointer"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </Button>
@@ -224,24 +311,25 @@ export function AuthModal({isOpen, onClose}: authModalProps) {
 
                 <div className="flex items-center space-x-2">
                   <Checkbox 
-                    id="terms" 
+                    id="terms"
+                    className="cursor-pointer" 
                     checked={formData.agreeTerms}
                     onCheckedChange={(checked) => handleInputChange('agreeTerms', checked as boolean)}
                     required
                   />
                   <Label htmlFor="terms" className="text-sm leading-5">
                     I agree to the{' '}
-                    <Button variant="link" className="px-0 h-auto text-sm text-primary">
+                    <Button variant="link" className="px-0 h-auto text-sm text-primary cursor-pointer">
                       Terms of Service
                     </Button>{' '}
                     and{' '}
-                    <Button variant="link" className="px-0 h-auto text-sm text-primary">
+                    <Button variant="link" className="px-0 h-auto text-sm text-primary cursor-pointer">
                       Privacy Policy
                     </Button>
                   </Label>
                 </div>
 
-                <Button type="submit" className="w-full bg-gradient-primary h-12">
+                <Button type="submit" className="w-full bg-gradient-primary h-12 cursor-pointer">
                   Create Account
                 </Button>
               </form>
@@ -261,7 +349,7 @@ export function AuthModal({isOpen, onClose}: authModalProps) {
               <Button
                 key={provider.name}
                 variant="outline"
-                className={`h-12 ${provider.color} transition-colors`}
+                className={`h-12 ${provider.color} transition-colors cursor-pointer`}
               >
                 {provider.icon}
               </Button>
@@ -273,7 +361,7 @@ export function AuthModal({isOpen, onClose}: authModalProps) {
           <Button
             variant="link"
             onClick={() => setActiveTab(activeTab === 'signin' ? 'signup' : 'signin')}
-            className="px-0 h-auto text-sm text-primary font-medium"
+            className="px-0 h-auto text-sm text-primary font-medium cursor-pointer"
           >
             {activeTab === 'signin' ? 'Sign up' : 'Sign in'}
           </Button>

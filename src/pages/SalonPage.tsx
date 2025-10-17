@@ -18,9 +18,8 @@ interface Review {
 }
 
 const SalonPage = () => {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('services');
 const salon = useLoaderData();
-// Mock Reviews
 
 const mockReviews: Review[] = [
   {
@@ -48,7 +47,6 @@ const mockReviews: Review[] = [
     service: 'Styling'
   }
 ];
-
 
 const renderStars = (rating: number) => {
   return Array.from({ length: 5 }, (_, i) => (
@@ -164,10 +162,10 @@ const formatDate = (dateString: string) => {
       </div>
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="services">Services</TabsTrigger>
-          <TabsTrigger value="reviews">Reviews</TabsTrigger>
-          <TabsTrigger value="contact">Contact</TabsTrigger>
+          <TabsTrigger value="services" className="cursor-pointer">Services</TabsTrigger>
+          <TabsTrigger value="overview" className="cursor-pointer">Overview</TabsTrigger>
+          <TabsTrigger value="reviews" className="cursor-pointer">Reviews</TabsTrigger>
+          <TabsTrigger value="contact" className="cursor-pointer">Contact</TabsTrigger>
         </TabsList>     
 
         <TabsContent value="services" className="space-y-6">
