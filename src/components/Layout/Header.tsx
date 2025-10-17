@@ -105,7 +105,6 @@ const Header = ({
               <div className="flex items-center gap-3">
                 {/* Notifications */}
                 <Button variant="ghost" size="sm" className="realtive">
-
                 </Button>
                 {userItems.map((item) => (
                   <Button
@@ -123,10 +122,10 @@ const Header = ({
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={onAuthClick} className="h-12">
+                <Button variant="outline" onClick={onAuthClick} className="h-12 cursor-pointer">
                   Sign In
                 </Button>
-                <Button onClick={onAuthClick} className="h-12 bg-gradient-primary">
+                <Button onClick={onAuthClick} className="h-12 bg-gradient-primary cursor-pointer">
                   Get Started
                 </Button>
               </div>
