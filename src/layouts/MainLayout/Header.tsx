@@ -1,22 +1,16 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Button } from '../ui/button'
-import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet'
-import { MapPin, Search, Sparkles, Calendar, Heart, User, Menu} from 'lucide-react'
+import { Button } from '../../components/ui/button'
+import { Sheet, SheetContent, SheetTrigger } from '../../components/ui/sheet'
+import { Badge } from '../../components/ui/badge'
+import { Search, Sparkles, Calendar, Heart, User, Menu, Bell, LogOut} from 'lucide-react'
+import { useAuth } from '../../components/context/AuthContext'
+import { Avatar, AvatarFallback } from '../../components/ui/avatar'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/ui/dropdown-menu'
+import UserLocation from '../../components/ui/userLocation'
 
-interface HeaderProps {
-  onAuthClick: () => void;
-  userProfile?: {
-    name: string;
-    avatar?: string;
-    type: 'customer' | 'provider';
-  };
-}
-
-const Header = ({
-  userProfile,
-  onAuthClick
-}: HeaderProps) => {
+const Header = ({ onAuthClick }: { onAuthClick: (tab: 'signin' | 'signup') => void }) => {
+  const { user, logout } = useAuth();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -25,8 +19,8 @@ const Header = ({
     { id: 'search', label: 'Find Salons', icon: <Search className="w-4 h-4" /> , path:'/search'},
     { id: 'services', label: 'Services', icon: <Sparkles className="w-4 h-4" /> , path:'/services'},
   ];
-  const userItems = userProfile ? [
-    { id: 'bookings', label: 'My Bookings', icon: <Calendar className="w-4 h-4" />, path:'/bookings' },
+  const userItems = user ? [
+    { id: 'reservations', label: 'My Reservations', icon: <Calendar className="w-4 h-4" />, path:'/reservations' },
     { id: 'favorites', label: 'Favorites', icon: <Heart className="w-4 h-4" />, path:'/favorites' },
     { id: 'profile', label: 'Profile', icon: <User className="w-4 h-4" />, path:'/profile' },
   ] : [];
@@ -34,7 +28,6 @@ const Header = ({
     <header className='sticky top-0 z-50 w-full bg-white/80 backdrop-blur-xl border-b border-border mobile-safe-top'>
       <div className='container mx-auto px-4'>
         <div className="flex items-center justify-between h-16">
-
           {/* Logo */}
           <Link to={'/'}>
             <div className="flex items-center gap-3">
@@ -77,7 +70,6 @@ const Header = ({
             { 
               const isActive = location.pathname === item.path;
             return (
-
               <Button 
               key={item.id} 
               asChild 
@@ -96,36 +88,62 @@ const Header = ({
           {/* User Section */}
           <div className="flex items-center gap-3">
             {/* Location */}
-            <div className="hidden lg:flex items-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="w-4 h-4" />
-              <span>Sarajevo, BiH</span>
-            </div>
-            
-            {userProfile ? (
+              <UserLocation />
+            {user ? (
               <div className="flex items-center gap-3">
                 {/* Notifications */}
-                <Button variant="ghost" size="sm" className="realtive">
+                <Button variant="ghost" size="sm" className="relative">
+                <Bell className="w-4 h-4" />
+                  <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center text-xs">
+                    3
+                  </Badge>
                 </Button>
-                {userItems.map((item) => (
-                  <Button
-                    key={item.id}
-                    variant="ghost"
-                    size="sm"
-                    className="flex items-center gap-1"
-                  >
-                  <Link to={item.path}>
-                    {item.icon}
-                    {item.label}
-                  </Link>
-                  </Button>
-                ))}
+                <div className="flex items-center gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="flex items-center gap-2 px-2">
+                        <Avatar className="w-8 h-8">
+                          <AvatarFallback className="bg-gradient-primary text-white text-sm">
+                            {user?.firstName?.charAt(0)?.toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="hidden sm:block text-sm font-medium">
+                          {user?.firstName || 'User'}
+                        </span>
+                      </Button>
+                    </DropdownMenuTrigger>
+
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuLabel className="capitalize">
+                        {user?.firstName} {user?.lastName}
+                        <p className="text-xs text-muted-foreground">{user?.userType}</p>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {userItems.map((item) => (
+                        <DropdownMenuItem key={item.id} asChild>
+                          <Link to={item.path} className="flex items-center gap-2">
+                            {item.icon}
+                            {item.label}
+                          </Link>
+                        </DropdownMenuItem>
+                      ))}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={logout}
+                        className="flex items-center gap-2 text-red-500 focus:text-red-600"
+                      >
+                        <LogOut className="w-4 h-4" /> Logout
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={onAuthClick} className="h-12 cursor-pointer">
+                <Button variant="outline" onClick={() => {onAuthClick('signin')}} className="h-12 cursor-pointer">
                   Sign In
                 </Button>
-                <Button onClick={onAuthClick} className="h-12 bg-gradient-primary cursor-pointer">
+                <Button onClick={ () => {onAuthClick('signup')}} className="h-12 bg-gradient-primary cursor-pointer">
                   Get Started
                 </Button>
               </div>
@@ -150,7 +168,6 @@ const Header = ({
                     { 
                       const isActive = location.pathname === item.path;
                     return (
-
                       <Button 
                       key={item.id} 
                       asChild 
@@ -167,7 +184,7 @@ const Header = ({
                     )})}
                   </nav>
                   {/* User Items */}
-                  {userProfile ? (
+                  {user ? (
                     <>
                       <hr className="border-border" />
                       <nav className="flex flex-col gap-2">
@@ -189,20 +206,18 @@ const Header = ({
                     <>
                     <hr className="border-border" />
                     <div className="flex flex-col gap-3">
-                      <Button variant="outline" onClick={onAuthClick} className="h-12">
+                      <Button variant="outline" onClick={() => onAuthClick('signin')} className="h-12">
                         Sign In
                       </Button>
-                      <Button onClick={onAuthClick} className="h-12 bg-gradient-primary">
+                      <Button onClick={() => onAuthClick('signup')} className="h-12 bg-gradient-primary">
                         Get Started
                       </Button>
                     </div>
                   </>
                   )}
                 </div>
-
               </SheetContent>
             </Sheet>
-
           </div>
         </div>
       </div>
