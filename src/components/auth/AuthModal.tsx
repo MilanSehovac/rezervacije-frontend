@@ -1,4 +1,4 @@
-import { Eye, EyeOff, Lock, Mail, Phone, Smartphone, Sparkles, User } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, Phone, Sparkles, User } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
@@ -6,10 +6,10 @@ import { Label } from "../ui/label";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Checkbox } from "../ui/checkbox";
-import { Separator } from "../ui/separator";
-import axios from 'axios'
+import { useAuth } from '../context/AuthContext'
+import { login, register } from "../../helpers/authHelpers";
 
-interface FormData {
+export interface AuthFormData  {
   email: string;
   password: string;
   firstName: string;
@@ -20,14 +20,16 @@ interface FormData {
 }
 interface authModalProps{
   isOpen : boolean,
-  onClose : () => void
+  onClose : () => void,
+  activeTab: 'signin' | 'signup';
+  setActiveTab: (tab: 'signin' | 'signup') => void;
 }
 
-export function AuthModal({isOpen, onClose}: authModalProps) {
-  const [activeTab, setActiveTab] = useState('signin');
-  const [accountType, setAccountType] = useState<'customer' | 'provider'>('customer');
+export function AuthModal({isOpen, onClose, activeTab, setActiveTab}: authModalProps) {
+  const { setUser } = useAuth(); 
+  const [accountType, setAccountType] = useState<'user' | 'salon_owner'>('user');
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<AuthFormData >({
     email: '',
     password: '',
     firstName: '',
@@ -51,7 +53,7 @@ export function AuthModal({isOpen, onClose}: authModalProps) {
     const regex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
     return regex.test(password);
   };
-  const validateForm = (formData: FormData) => {
+  const validateForm = (formData: AuthFormData) => {
     if (!isValidName([formData.firstName, formData.lastName])) {
       return "Please enter a valid first and last name";
     }
@@ -74,11 +76,11 @@ export function AuthModal({isOpen, onClose}: authModalProps) {
   
     return null;
   };
-  const handleAccountTypeChange = (type: 'customer' | 'provider') => {
+  const handleAccountTypeChange = (type: 'user' | 'salon_owner') => {
     setAccountType(type);
     setFormData((prev) => ({
       ...prev,
-      userType: type === 'customer' ? 1 : 2,
+      userType: type === 'user' ? 1 : 2,
     }));
   };
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,17 +94,13 @@ export function AuthModal({isOpen, onClose}: authModalProps) {
   };
   const handleLogin = async () => {
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/users/login`, {
-        email: formData.email,
-        password: formData.password,
-      });
-      console.log("User logged in:", res.data);
-      
-      localStorage.setItem("token", res.data.token);
-      onClose();
-    } catch (error: any) {
-      console.error("Error logging in:", error.response?.data || error.message);
-      alert(error.response?.data?.message || "Login failed.");
+    const { user } = await login(formData.email, formData.password);
+    setUser(user)
+    } catch (err) {
+      console.error(err);
+    }
+    finally{
+      onClose()
     }
   };
   const handleRegister = async () => {
@@ -111,24 +109,21 @@ export function AuthModal({isOpen, onClose}: authModalProps) {
       alert(error);
       return;
     }
-  
+    
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/users`, formData);
-      console.log("User created:", res.data);
-      onClose();
+      const { user } = await register(formData)
+      setUser(user);
     } catch (error: any) {
       console.error("Error creating user:", error.response?.data || error.message);
       alert(error.response?.data?.message || "Registration failed.");
+    }
+    finally{
+      onClose()
     }
   };
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
-  const socialProviders = [
-    { name: 'Google', icon: <span className="text-sm font-medium">G</span>, color: 'hover:bg-red-50' },
-    { name: 'Facebook', icon: <span className="text-sm font-medium">f</span>, color: 'hover:bg-blue-50' },
-    { name: 'Apple', icon: <Smartphone className="w-4 h-4" />, color: 'hover:bg-gray-50' }
-  ];
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md bg-white border-0 shadow-beauty-lg">
@@ -145,7 +140,7 @@ export function AuthModal({isOpen, onClose}: authModalProps) {
             {activeTab === 'signin' ? 'Sign in to your account' : 'Create your account to get started'}
           </p>
         </DialogHeader>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={(value: string) => setActiveTab(value as 'signin' | 'signup')} className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-muted/50">
             <TabsTrigger value="signin" className="data-[state=active]:bg-white cursor-pointer">
               Sign In
@@ -214,14 +209,14 @@ export function AuthModal({isOpen, onClose}: authModalProps) {
                 <div className="mt-6">
                   <Label className="text-sm font-medium mb-3 block">I am a:</Label>
                   <div className="grid grid-cols-2 gap-3">
-                    <Button type="button" variant={accountType === 'customer' ? 'default' : 'outline'} onClick={() => handleAccountTypeChange('customer')} className="cursor-pointer h-12 flex-col gap-1">
+                    <Button type="button" variant={accountType === 'user' ? 'default' : 'outline'} onClick={() => handleAccountTypeChange('user')} className="cursor-pointer h-12 flex-col gap-1">
                       <User className="w-4 h-4" />
-                      <span className="text-xs">Customer</span>
+                      <span className="text-xs">User</span>
                     </Button>
                     <Button
                       type="button"
-                      variant={accountType === 'provider' ? 'default' : 'outline'}
-                      onClick={() => handleAccountTypeChange('provider')}
+                      variant={accountType === 'salon_owner' ? 'default' : 'outline'}
+                      onClick={() => handleAccountTypeChange('salon_owner')}
                       className="cursor-pointer h-12 flex-col gap-1"
                     >
                       <Sparkles className="w-4 h-4" />
@@ -335,27 +330,6 @@ export function AuthModal({isOpen, onClose}: authModalProps) {
               </form>
           </TabsContent>
         </Tabs>
-        <div className="space-y-4"> 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-muted-foreground">Or continue with</span>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            {socialProviders.map((provider) => (
-              <Button
-                key={provider.name}
-                variant="outline"
-                className={`h-12 ${provider.color} transition-colors cursor-pointer`}
-              >
-                {provider.icon}
-              </Button>
-            ))}
-          </div>
-        </div>
         <div className="text-center text-sm text-muted-foreground">
           {activeTab === 'signin' ? "Don't have an account? " : "Already have an account? "}
           <Button

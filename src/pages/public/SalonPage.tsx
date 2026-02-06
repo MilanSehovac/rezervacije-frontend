@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Link, useLoaderData } from "react-router-dom";
-import { Badge } from "../components/ui/badge";
-import { Button } from "../components/ui/button";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
 import { ArrowLeft, Award, Calendar, Clock, DollarSign, Globe, MapPin, Phone, Share2, Star, Users } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { Avatar, AvatarFallback } from "@radix-ui/react-avatar";
-import { ImageWithFallback } from "../components/ui/ImageWithFallback";
+import { ImageWithFallback } from "../../components/ui/ImageWithFallback";
 
 interface Review {
   id: string;
@@ -18,7 +18,7 @@ interface Review {
 }
 
 const SalonPage = () => {
-  const [activeTab, setActiveTab] = useState('services');
+const [activeTab, setActiveTab] = useState('services');
 const salon = useLoaderData();
 
 const mockReviews: Review[] = [

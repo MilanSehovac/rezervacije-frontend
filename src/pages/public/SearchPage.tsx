@@ -1,5 +1,5 @@
-import Heading from '../components/sections/Heading'
-import { SalonDirectory } from '../components/sections/SalonDirectory'
+import Heading from '../../components/sections/Heading'
+import { SalonDirectory } from '../../components/sections/SalonDirectory'
 const Search = () => {
     const handleSalonSelect = () => {}
   return (

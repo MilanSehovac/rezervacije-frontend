@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect } from 'react';
-import axios from 'axios';
 import { Card, CardContent } from '../ui/card.tsx';
 import { Input } from '../ui/input.tsx';
 import { Button } from '../ui/button.tsx';
