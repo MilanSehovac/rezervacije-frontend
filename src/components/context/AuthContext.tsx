@@ -1,11 +1,14 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import instance from "../../confing/AxiosConfig";
+import type { UserProfile } from "../types";
 
 type User = any;
+type Salon = any;
 
 type AuthContextType = {
   user: User | null;
+  salon: Salon | null;
   setUser: (u: User | null) => void;
   isAuthChecked: boolean;
   logout: () => Promise<void>;
@@ -21,15 +24,18 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [salon, setSalon] = useState<any | null>(null)
   const [isAuthChecked, setIsAuthChecked] = useState(false);
 
   useEffect(() => {
     const getMe = async () => {
       try {
         const res = await instance.get("/users/me");
-        setUser(res.data);
+        setUser(res.data.user as UserProfile);
+        setSalon(res.data.salon)
       } catch {
         setUser(null);
+        setSalon(null)
       } finally {
         setIsAuthChecked(true);
       }
@@ -52,6 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     <AuthContext.Provider
       value={{
         user,
+        salon,
         setUser,
         isAuthChecked,
         logout: handleLogout,

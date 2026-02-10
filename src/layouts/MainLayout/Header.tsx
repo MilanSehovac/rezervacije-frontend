@@ -3,17 +3,17 @@ import { Link, useLocation } from 'react-router-dom'
 import { Button } from '../../components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '../../components/ui/sheet'
 import { Badge } from '../../components/ui/badge'
-import { Search, Sparkles, Calendar, Heart, User, Menu, Bell, LogOut} from 'lucide-react'
+import { Search, Sparkles, Calendar, Heart, User, Menu, Bell, LogOut, Store} from 'lucide-react'
 import { useAuth } from '../../components/context/AuthContext'
 import { Avatar, AvatarFallback } from '../../components/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../../components/ui/dropdown-menu'
 import UserLocation from '../../components/ui/userLocation'
 
 const Header = ({ onAuthClick }: { onAuthClick: (tab: 'signin' | 'signup') => void }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, salon } = useAuth();
+  const hasSalon = !!salon;
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
-
   const navigationItems = [
     { id: 'home', label: 'Home', icon: null, path:'/' },
     { id: 'search', label: 'Find Salons', icon: <Search className="w-4 h-4" /> , path:'/search'},
@@ -23,6 +23,7 @@ const Header = ({ onAuthClick }: { onAuthClick: (tab: 'signin' | 'signup') => vo
     { id: 'reservations', label: 'My Reservations', icon: <Calendar className="w-4 h-4" />, path:'/reservations' },
     { id: 'favorites', label: 'Favorites', icon: <Heart className="w-4 h-4" />, path:'/favorites' },
     { id: 'profile', label: 'Profile', icon: <User className="w-4 h-4" />, path:'/profile' },
+    { id: 'salon', label: hasSalon ? 'Manage My Salon' : 'List My Salon', icon: <Store />, path: hasSalon ? '/salon/dashboard' : '/salon/create' },
   ] : [];
   return (
     <header className='sticky top-0 z-50 w-full bg-white/80 backdrop-blur-xl border-b border-border mobile-safe-top'>
