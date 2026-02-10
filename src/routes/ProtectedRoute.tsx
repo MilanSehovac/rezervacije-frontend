@@ -1,6 +1,6 @@
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../components/context/AuthContext'
 import { Navigate } from 'react-router-dom'
-import LoadingSpinner from '../ui/loadingSpinner'
+import LoadingSpinner from '../components/ui/loadingSpinner'
 
 type Props = {
     children: React.ReactNode;
