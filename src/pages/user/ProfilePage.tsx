@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -21,39 +21,70 @@ import {
   Camera
 } from 'lucide-react';
 import { Switch } from '../../components/ui/switch';
+import { useAuth } from '../../components/context/AuthContext';
+import { updateUserProfile } from '../../helpers/userHelpers';
+import type { UserFormData } from '../../components/types';
+import LoadingSpinner from '../../components/ui/loadingSpinner';
+import { Navigate } from 'react-router-dom'
 
-interface ProfilePageProps {
-    userProfile?: {
-      name: string;
-      avatar?: string;
-      type: 'user' | 'salon_owner';
-    };
-  }
 
-const ProfilePage = ({userProfile}:ProfilePageProps) => {
+const ProfilePage = () => {
+    const { user, isAuthChecked, setUser } = useAuth();
+    if (!isAuthChecked) {
+        return <LoadingSpinner loading singular={false} />
+      }
+      
+      if (!user) {
+        return <Navigate to="/login" replace />
+      }
     const [isEditing, setIsEditing] = useState(false)
-    const [formData, setFormData] = useState({
-        firstName: 'Sarah',
-        lastName: 'Johnson',
-        email: 'sarah.johnson@email.com',
-        phone: '+1 (555) 123-4567',
-        address: '123 Main Street',
-        city: 'New York',
-        state: 'NY',
-        zipCode: '10001'
+    const [userFormData, setUserFormData] = useState<UserFormData>({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phoneNumber,
+        address: user.address,
+        city: user.city,
+        state: user.state,
+        zipCode: user.zipCode
     })
+    useEffect(() => {
+        if (user) {
+          setUserFormData({
+            firstName: user.firstName || '',
+            lastName: user.lastName || '',
+            email: user.email || '',
+            phone: user.phoneNumber || '',
+            address: user.address || '',
+            city: user.city || '',
+            state: user.state || '',
+            zipCode: user.zipCode || ''
+          })
+        }
+      }, [user])
     const [notifications, setNotifications] = useState({
         bookingConfirmations: true,
         promotions: true,
         reminders: true,
         newMessages: true
     })
-    const handleInputChange = (field: string, value: string) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-      };
+    const handleInputChange = <K extends keyof UserFormData>(
+        field: K,
+        value: UserFormData[K]
+      ) => {
+        setUserFormData(prev => ({ ...prev, [field]: value }));
+    };
     
-      const handleSave = () => {
-        setIsEditing(false);
+      const handleSave = async () => {
+        try {
+            const updated = await updateUserProfile(userFormData)
+
+            setUser(updated.user)
+            setIsEditing(false);
+            
+        } catch (error) {
+            console.log(error)
+        }
       };
       const bookingHistory = [];
       const favoriteSalons = [];
@@ -61,62 +92,65 @@ const ProfilePage = ({userProfile}:ProfilePageProps) => {
     <section className='space-y-8'>
         <div className="max-w-5xl mx-auto space-y-8">
             {/* Profile Header */}
+            
             <Card className="border-0 shadow-lg">
                 <CardContent className="p-8">
-                <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-                    <div className="relative">
-                    <Avatar className="w-24 h-24">
-                        <AvatarFallback className="bg-gradient-primary text-white text-3xl">
-                        {userProfile?.name?.charAt(0) || 'U'}
-                        </AvatarFallback>
-                    </Avatar>
-                    <Button 
-                        size="sm" 
-                        className="absolute -bottom-2 -right-2 rounded-full w-10 h-10 p-0 shadow-lg"
-                    >
-                        <Camera className="w-4 h-4" />
-                    </Button>
-                    </div>
-                    
-                    <div className="flex-1 text-center md:text-left">
-                    <h1 className="text-3xl text-gradient-primary mb-2">
-                        {formData.firstName} {formData.lastName}
-                    </h1>
-                    <p className="text-muted-foreground mb-4">{formData.email}</p>
-                    <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-                        <Badge variant="secondary" className="gap-1">
-                        <User className="w-3 h-3" />
-                        {userProfile?.type === 'salon_owner' ? 'salon_owner' : 'user'}
-                        </Badge>
-                        <Badge variant="secondary" className="gap-1">
-                        <Calendar className="w-3 h-3" />
-                        Member since Dec 2024
-                        </Badge>
-                        <Badge variant="secondary" className="gap-1">
-                        <Heart className="w-3 h-3 fill-current" />
-                        {favoriteSalons.length} Favorites
-                        </Badge>
-                    </div>
-                    </div>
+                    <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+                        <div className="relative">
+                            <Avatar className="w-24 h-24">
+                                <AvatarFallback className="bg-gradient-primary text-white text-3xl">
+                                {user.firstName.charAt(0) || 'U'}
+                                </AvatarFallback>
+                            </Avatar>
+                            <Button 
+                                size="sm" 
+                                className="absolute -bottom-2 -right-2 rounded-full w-10 h-10 p-0 shadow-lg"
+                            >
+                                <Camera className="w-4 h-4" />
+                            </Button>
+                        </div>            
+                        <div className="flex-1 text-center md:text-left">
+                            <h1 className="text-3xl text-gradient-primary mb-2">
+                                {userFormData.firstName} {userFormData.lastName}
+                            </h1>
+                            <p className="text-muted-foreground mb-4">{userFormData.email}</p>
+                            <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                                <Badge variant="secondary" className="gap-1">
+                                    <User className="w-3 h-3" />
+                                    {user.userType === 'salon_owner' ? 'salon_owner' : 'user'}
+                                </Badge>
+                                <Badge variant="secondary" className="gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    Member since {new Date(user.createdAt).toLocaleDateString('en-GB', {
+                                    month: 'short',
+                                    year: 'numeric'
+                                    })}
+                                </Badge>
+                                <Badge variant="secondary" className="gap-1">
+                                    <Heart className="w-3 h-3 fill-current" />
+                                    {favoriteSalons.length} Favorites
+                                </Badge>
+                            </div>
+                        </div>
 
-                    <Button 
-                    variant={isEditing ? 'default' : 'outline'}
-                    onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-                    className="gap-2"
-                    >
-                    {isEditing ? (
-                        <>
-                        <Save className="w-4 h-4" />
-                        Save Changes
-                        </>
-                    ) : (
-                        <>
-                        <Settings className="w-4 h-4" />
-                        Edit Profile
-                        </>
-                    )}
-                    </Button>
-                </div>
+                        <Button 
+                        variant={isEditing ? 'default' : 'outline'}
+                        onClick={() => isEditing ? handleSave() : setIsEditing(true)}
+                        className="gap-2"
+                        >
+                        {isEditing ? (
+                            <>
+                            <Save className="w-4 h-4" />
+                            Save Changes
+                            </>
+                        ) : (
+                            <>
+                            <Settings className="w-4 h-4" />
+                            Edit Profile
+                            </>
+                        )}
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -156,7 +190,7 @@ const ProfilePage = ({userProfile}:ProfilePageProps) => {
                         <Label htmlFor="firstName">First Name</Label>
                         <Input
                             id="firstName"
-                            value={formData.firstName}
+                            value={userFormData.firstName}
                             onChange={(e) => handleInputChange('firstName', e.target.value)}
                             disabled={!isEditing}
                         />
@@ -165,7 +199,7 @@ const ProfilePage = ({userProfile}:ProfilePageProps) => {
                         <Label htmlFor="lastName">Last Name</Label>
                         <Input
                             id="lastName"
-                            value={formData.lastName}
+                            value={userFormData.lastName}
                             onChange={(e) => handleInputChange('lastName', e.target.value)}
                             disabled={!isEditing}
                         />
@@ -177,7 +211,7 @@ const ProfilePage = ({userProfile}:ProfilePageProps) => {
                             <Input
                             id="email"
                             type="email"
-                            value={formData.email}
+                            value={userFormData.email}
                             onChange={(e) => handleInputChange('email', e.target.value)}
                             disabled={!isEditing}
                             className="pl-10"
@@ -191,7 +225,7 @@ const ProfilePage = ({userProfile}:ProfilePageProps) => {
                             <Input
                             id="phone"
                             type="tel"
-                            value={formData.phone}
+                            value={userFormData.phone}
                             onChange={(e) => handleInputChange('phone', e.target.value)}
                             disabled={!isEditing}
                             className="pl-10"
@@ -204,7 +238,7 @@ const ProfilePage = ({userProfile}:ProfilePageProps) => {
                             <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
                             id="address"
-                            value={formData.address}
+                            value={userFormData.address}
                             onChange={(e) => handleInputChange('address', e.target.value)}
                             disabled={!isEditing}
                             className="pl-10"
@@ -215,7 +249,7 @@ const ProfilePage = ({userProfile}:ProfilePageProps) => {
                         <Label htmlFor="city">City</Label>
                         <Input
                             id="city"
-                            value={formData.city}
+                            value={userFormData.city}
                             onChange={(e) => handleInputChange('city', e.target.value)}
                             disabled={!isEditing}
                         />
@@ -224,7 +258,7 @@ const ProfilePage = ({userProfile}:ProfilePageProps) => {
                         <Label htmlFor="state">State</Label>
                         <Input
                             id="state"
-                            value={formData.state}
+                            value={userFormData.state}
                             onChange={(e) => handleInputChange('state', e.target.value)}
                             disabled={!isEditing}
                         />
