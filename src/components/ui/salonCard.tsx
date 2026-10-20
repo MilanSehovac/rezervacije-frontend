@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader } from './card';
 import { Badge } from './badge';
 import { Button } from './button';
 import { ImageWithFallback } from './ImageWithFallback'
+import type { SalonProfile } from '../types';
 import { 
   Star, 
   MapPin, 
@@ -14,28 +15,12 @@ import {
   Users
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
-export interface Salon {
-  id: string;
-  name: string;
-  category: 'barber' | 'nail-salon' | 'spa' | 'beauty-salon';
-  description: string;
-  image: string;
-  rating: number;
-  reviewCount: number;
-  address: string;
-  phone: string;
-  priceRange: '$' | '$$' | '$$$';
-  openHours: string;
-  services: string[];
-  specialties: string[];
-  isOpen: boolean;
-  nextAvailable: string;
-  distance?: string;
-}
+import { salonPath } from '../../helpers/slug';
+import { FavoriteButton } from '../salon/FavoriteButton';
+import { DEFAULT_TIMEZONE, isOpenNow } from '../../helpers/timezone';
 
 interface SalonCardProps {
-  salon: Salon;
+  salon: SalonProfile;
 }
 
 export function SalonCard({ salon }: SalonCardProps) {
@@ -52,6 +37,7 @@ export function SalonCard({ salon }: SalonCardProps) {
   const getCategoryLabel = (category: string) => {
     switch (category) {
       case 'barber': return 'Barbershop';
+      case 'hair-salon': return 'Hair Salon';
       case 'nail-salon': return 'Nail Salon';
       case 'spa': return 'Spa & Wellness';
       case 'beauty-salon': return 'Beauty Salon';
@@ -59,53 +45,47 @@ export function SalonCard({ salon }: SalonCardProps) {
     }
   };
 
-  const getPriceRangeLabel = (range: string) => {
-    switch (range) {
-      case '$': return '$20-40';
-      case '$$': return '$40-80';
-      case '$$$': return '$80+';
-      default: return '';
-    }
-  };
+  const priceLabel =
+    salon.minPrice == null || salon.maxPrice == null
+      ? ''
+      : salon.minPrice === salon.maxPrice
+      ? `$${salon.minPrice}`
+      : `$${salon.minPrice} - $${salon.maxPrice}`;
+  const open = isOpenNow(salon.daysOfOperation, salon.timezone || DEFAULT_TIMEZONE);
 
   return (
-    <Link to={'/salon/' + salon.id}>
+    <Link to={salonPath(salon)}>
       <Card className="overflow-hidden hover:shadow-beauty-md transition-all duration-300 cursor-pointer group border-0 shadow-beauty">
         <div className="relative">
           <ImageWithFallback
-            src={salon.image}
-            alt={salon.name}
+            src={salon.images[0]}
+            alt={salon.businessName}
             className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
           />
           <div className="absolute top-3 left-3">
-            <Badge 
-              variant={salon.isOpen ? "default" : "secondary"} 
-              className={`gap-1 ${salon.isOpen ? 'bg-green-100 text-green-700' : 'bg-muted text-muted-foreground'}`}
+            <Badge
+              variant="default"
+              className={open ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}
             >
               <Clock className="w-3 h-3" />
-              {salon.isOpen ? 'Open' : 'Closed'}
+              {open ? 'Open now' : 'Closed'}
             </Badge>
           </div>
+          <FavoriteButton salonId={salon.id} className="absolute bottom-3 right-3" />
           <div className="absolute top-3 right-3">
             <Badge variant="outline" className="bg-white/90 gap-1">
               {getCategoryIcon(salon.category)}
               {getCategoryLabel(salon.category)}
             </Badge>
           </div>
-          {salon.distance && (
-            <div className="absolute bottom-3 left-3">
-              <Badge variant="outline" className="bg-white/90">
-                {salon.distance}
-              </Badge>
-            </div>
-          )}
+
         </div>
 
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div>
               <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
-                {salon.name}
+                {salon.businessName}
               </h3>
               <p className="text-sm text-muted-foreground line-clamp-2">
                 {salon.description}
@@ -113,8 +93,14 @@ export function SalonCard({ salon }: SalonCardProps) {
             </div>
             <div className="flex items-center gap-1 text-sm">
               <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              <span className="font-medium">{salon.rating}</span>
-              <span className="text-muted-foreground">({salon.reviewCount})</span>
+              {salon.reviewCount ? (
+                <>
+                  <span className="font-medium">{salon.rating}</span>
+                  <span className="text-muted-foreground">({salon.reviewCount})</span>
+                </>
+              ) : (
+                <span className="text-muted-foreground">New</span>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -139,28 +125,24 @@ export function SalonCard({ salon }: SalonCardProps) {
               <span className="text-sm font-medium">Services</span>
             </div>
             <div className="flex flex-wrap gap-1">
-              {salon.services.slice(0, 3).map((service, index) => (
-                <Badge key={index} variant="outline" className="text-xs">
-                  {service}
-                </Badge>
-              ))}
-              {salon.services.length > 3 && (
-                <Badge variant="outline" className="text-xs">
-                  +{salon.services.length - 3} more
-                </Badge>
-              )}
+            {(salon.services || []).slice(0, 3).map((service, index) => (
+              <Badge key={index} variant="outline" className="text-xs">
+                {service.name}
+              </Badge>
+            ))}
+            {(salon.services || []).length > 3 && (
+              <Badge variant="outline" className="text-xs">
+                +{(salon.services || []).length - 3} more
+              </Badge>
+            )}
             </div>
           </div>
 
           {/* Specialties */}
-          {salon.specialties.length > 0 && (
+          {(salon.specialties ?? []).length > 0 && (
             <div>
               <div className="flex flex-wrap gap-1">
-                {salon.specialties.slice(0, 2).map((specialty, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    ⭐ {specialty}
-                  </Badge>
-                ))}
+
               </div>
             </div>
           )}
@@ -169,14 +151,9 @@ export function SalonCard({ salon }: SalonCardProps) {
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-muted-foreground" />
-              <span className="font-medium">{salon.priceRange}</span>
-              <span className="text-muted-foreground">{getPriceRangeLabel(salon.priceRange)}</span>
+              <span className="font-medium">{salon.priceRange ?? ''}</span>
+              <span className="text-muted-foreground">{priceLabel}</span>
             </div>
-            {salon.isOpen && (
-              <span className="text-green-600 font-medium">
-                Next: {salon.nextAvailable}
-              </span>
-            )}
           </div>
 
           {/* Action Buttons */}
@@ -186,7 +163,7 @@ export function SalonCard({ salon }: SalonCardProps) {
               size="sm"
               className="flex-1"
             >
-              <Link to={'/salon/' + salon.id}>
+              <Link to={salonPath(salon)}>
                 View Details
               </Link>
             </Button>
@@ -194,10 +171,10 @@ export function SalonCard({ salon }: SalonCardProps) {
               size="sm"
               variant={'default'}
               className="flex-1"
-              disabled={!salon.isOpen}
+            
             >
-              <Link to={'/salon/' + salon.id}>
-                {salon.isOpen ? 'Book Now' : 'Closed'}
+              <Link to={salonPath(salon)}>
+                Book Now
               </Link>
             </Button>
           </div>

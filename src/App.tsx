@@ -1,5 +1,6 @@
 import { RouterProvider, createBrowserRouter, createRoutesFromElements } from "react-router-dom";
 import { AuthProvider } from "./components/context/AuthContext";
+import { FavoritesProvider } from "./components/context/FavoritesContext";
 import { AppRoutes } from "./routes";
 
 const router = createBrowserRouter(
@@ -9,7 +10,9 @@ const router = createBrowserRouter(
 function App() {
   return (
     <AuthProvider>
-      <RouterProvider router={router} />
+      <FavoritesProvider>
+        <RouterProvider router={router} />
+      </FavoritesProvider>
     </AuthProvider>
   );
 }

@@ -1,13 +1,17 @@
 import Heading from '../../components/sections/Heading'
 import { SalonDirectory } from '../../components/sections/SalonDirectory'
+import { Seo } from '../../components/Seo'
+
 const Search = () => {
-    const handleSalonSelect = () => {}
   return (
     <div className="space-y-6">
-        <Heading Title={'Find Your Perfect Salon'} Paragraph={'Discover and book appointments with top-rated salons in your area'} />
-        <SalonDirectory 
-        onSalonSelect={handleSalonSelect}
+        <Seo
+          title="Find salons, barbers and spas"
+          description="Browse hair salons, barbershops, nail studios and spas. Compare prices, read reviews and book an appointment online."
+          path="/search"
         />
+        <Heading Title={'Find your salon'} Paragraph={'Search by name, service or city and book a free time online'} />
+        <SalonDirectory />
     </div>
   )
 }

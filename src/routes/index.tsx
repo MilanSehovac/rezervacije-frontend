@@ -5,6 +5,9 @@ import { Route } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout/MainLayout";
 import AuthLayout from "../layouts/AuthLayout/AuthLayout";
 import ProtectedRoute from "./ProtectedRoute";
+import { lazy } from "react";
+
+const AdminSalonsPage = lazy(() => import("../pages/admin/AdminSalonsPage"));
 
 export const AppRoutes = (
   <>
@@ -13,6 +16,7 @@ export const AppRoutes = (
     </Route>
     <Route element={<MainLayout />}>
       {PublicRoutes}
+      <Route path="admin" element={<ProtectedRoute roles={['admin']}><AdminSalonsPage /></ProtectedRoute>} />
       <Route element={<AuthLayout />}>
         {AuthRoutes}
       </Route>

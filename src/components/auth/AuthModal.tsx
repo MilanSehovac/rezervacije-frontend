@@ -7,6 +7,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Checkbox } from "../ui/checkbox";
 import { useAuth } from '../context/AuthContext'
+import { getErrorMessage } from '../../helpers/errors'
 import { login, register } from "../../helpers/authHelpers";
 
 export interface AuthFormData  {
@@ -16,7 +17,7 @@ export interface AuthFormData  {
   lastName: string;
   phoneNumber: string;
   agreeTerms: boolean;
-  userType: number;
+  userType: 'user' | 'salon_owner';
 }
 interface authModalProps{
   isOpen : boolean,
@@ -26,7 +27,7 @@ interface authModalProps{
 }
 
 export function AuthModal({isOpen, onClose, activeTab, setActiveTab}: authModalProps) {
-  const { setUser } = useAuth(); 
+  const { refreshSession } = useAuth();
   const [accountType, setAccountType] = useState<'user' | 'salon_owner'>('user');
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState<AuthFormData >({
@@ -36,7 +37,7 @@ export function AuthModal({isOpen, onClose, activeTab, setActiveTab}: authModalP
     lastName: '',
     phoneNumber: '',
     agreeTerms: false,
-    userType: 1,
+    userType: 'user',
   });
   const isValidName = ([firstName, lastName]: [string, string]) => {
     return firstName.trim().length > 0 && lastName.trim().length > 0;
@@ -80,7 +81,7 @@ export function AuthModal({isOpen, onClose, activeTab, setActiveTab}: authModalP
     setAccountType(type);
     setFormData((prev) => ({
       ...prev,
-      userType: type === 'user' ? 1 : 2,
+      userType: type,
     }));
   };
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,13 +95,12 @@ export function AuthModal({isOpen, onClose, activeTab, setActiveTab}: authModalP
   };
   const handleLogin = async () => {
     try {
-    const { user } = await login(formData.email, formData.password);
-    setUser(user)
+      await login(formData.email, formData.password);
+      await refreshSession();
+      onClose();
     } catch (err) {
-      console.error(err);
-    }
-    finally{
-      onClose()
+      // keep the modal open so the user can correct the details
+      alert(getErrorMessage(err, "Login failed. Check your email and password."));
     }
   };
   const handleRegister = async () => {
@@ -111,14 +111,13 @@ export function AuthModal({isOpen, onClose, activeTab, setActiveTab}: authModalP
     }
     
     try {
-      const { user } = await register(formData)
-      setUser(user);
-    } catch (error: any) {
-      console.error("Error creating user:", error.response?.data || error.message);
-      alert(error.response?.data?.message || "Registration failed.");
-    }
-    finally{
-      onClose()
+      await register(formData);
+      // sign the new account in straight away
+      await login(formData.email, formData.password);
+      await refreshSession();
+      onClose();
+    } catch (error) {
+      alert(getErrorMessage(error, "Registration failed."));
     }
   };
   const handleInputChange = (field: string, value: string | boolean) => {

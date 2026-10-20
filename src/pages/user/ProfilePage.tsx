@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -15,8 +15,6 @@ import {
   Heart,
   Settings,
   Bell,
-  CreditCard,
-  Shield,
   Save,
   Camera
 } from 'lucide-react';
@@ -24,29 +22,51 @@ import { Switch } from '../../components/ui/switch';
 import { useAuth } from '../../components/context/AuthContext';
 import { updateUserProfile } from '../../helpers/userHelpers';
 import type { UserFormData } from '../../components/types';
+import { cancelBooking, createReview, getMyBookings } from '../../helpers/bookingHelpers';
+import { getErrorMessage } from '../../helpers/errors';
+import { Stars } from '../../components/salon/Stars';
+import { RescheduleDialog, type ReschedulableBooking } from '../../components/booking/RescheduleDialog';
+import { SecuritySettings } from '../../components/user/SecuritySettings';
+import { Seo } from '../../components/Seo';
+import { SalonCard } from '../../components/ui/salonCard';
+import { useFavorites } from '../../components/context/FavoritesContext';
+import { getFavoriteSalons } from '../../helpers/favoriteHelpers';
+import { updateNotificationPrefs, type NotificationPrefs } from '../../helpers/notificationHelpers';
+import type { SalonProfile } from '../../components/types';
+import { formatTime } from '../../helpers/phases';
 import LoadingSpinner from '../../components/ui/loadingSpinner';
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
+import type { UserProfile } from '../../components/types';
 
+type BookingItem = {
+  id: number;
+  salonId: number;
+  serviceId: number;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+  startAt: string;
+  endAt: string;
+  Salon?: { id?: number; businessName?: string; timezone?: string; cancellationHours?: number };
+  service?: { name?: string };
+  review?: { id: number; rating: number } | null;
+};
 
-const ProfilePage = () => {
-    const { user, isAuthChecked, setUser } = useAuth();
-    if (!isAuthChecked) {
-        return <LoadingSpinner loading singular={false} />
-      }
-      
-      if (!user) {
-        return <Navigate to="/login" replace />
-      }
+type ProfileContentProps = {
+  user: UserProfile;
+  setUser: (u: UserProfile | null) => void;
+  defaultTab: string;
+};
+
+const ProfileContent = ({ user, setUser, defaultTab }: ProfileContentProps) => {
     const [isEditing, setIsEditing] = useState(false)
     const [userFormData, setUserFormData] = useState<UserFormData>({
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        phone: user.phoneNumber,
-        address: user.address,
-        city: user.city,
-        state: user.state,
-        zipCode: user.zipCode
+        phoneNumber: user.phoneNumber || '',
+        address: user.address || '',
+        city: user.city || '',
+        state: user.state || '',
+        zipcode: user.zipcode || ''
     })
     useEffect(() => {
         if (user) {
@@ -54,20 +74,51 @@ const ProfilePage = () => {
             firstName: user.firstName || '',
             lastName: user.lastName || '',
             email: user.email || '',
-            phone: user.phoneNumber || '',
+            phoneNumber: user.phoneNumber || '',
             address: user.address || '',
             city: user.city || '',
             state: user.state || '',
-            zipCode: user.zipCode || ''
+            zipcode: user.zipcode || ''
           })
         }
       }, [user])
-    const [notifications, setNotifications] = useState({
-        bookingConfirmations: true,
-        promotions: true,
-        reminders: true,
-        newMessages: true
+    const [prefs, setPrefs] = useState<NotificationPrefs>({
+        reminders: user.notificationPrefs?.reminders ?? true,
+        statusUpdates: user.notificationPrefs?.statusUpdates ?? true,
     })
+    const [prefsError, setPrefsError] = useState('')
+    const changePref = async (key: keyof NotificationPrefs, value: boolean) => {
+        const previous = prefs
+        setPrefs({ ...prefs, [key]: value })
+        setPrefsError('')
+        try {
+            await updateNotificationPrefs({ [key]: value })
+        } catch {
+            setPrefs(previous)
+            setPrefsError('Could not save your preference. Try again.')
+        }
+    }
+    const { count: favoriteCount, version: favoritesVersion } = useFavorites()
+    const [favoriteSalons, setFavoriteSalons] = useState<SalonProfile[]>([])
+    const [favoritesLoading, setFavoritesLoading] = useState(true)
+    useEffect(() => {
+        if (user.userType !== 'user') {
+            setFavoritesLoading(false)
+            return
+        }
+        getFavoriteSalons()
+            .then(setFavoriteSalons)
+            .catch(() => setFavoriteSalons([]))
+            .finally(() => setFavoritesLoading(false))
+    }, [user.userType, favoritesVersion])
+    const [bookingHistory, setBookingHistory] = useState<BookingItem[]>([]);
+    const [bookingsLoading, setBookingsLoading] = useState(false);
+    const [bookingsError, setBookingsError] = useState('');
+    const [cancellingId, setCancellingId] = useState<number | null>(null);
+    const [reschedulingBooking, setReschedulingBooking] = useState<ReschedulableBooking | null>(null);
+    const [reviewingId, setReviewingId] = useState<number | null>(null);
+    const [reviewRating, setReviewRating] = useState(0);
+    const [reviewComment, setReviewComment] = useState('');
     const handleInputChange = <K extends keyof UserFormData>(
         field: K,
         value: UserFormData[K]
@@ -86,8 +137,48 @@ const ProfilePage = () => {
             console.log(error)
         }
       };
-      const bookingHistory = [];
-      const favoriteSalons = [];
+
+      const fetchBookings = useCallback(async () => {
+        try {
+          setBookingsLoading(true);
+          setBookingsError('');
+          const data = await getMyBookings();
+          setBookingHistory(data);
+        } catch (error) {
+          console.log('Error fetching bookings', error);
+          setBookingsError('Could not load your bookings. Try again.');
+        } finally {
+          setBookingsLoading(false);
+        }
+      }, []);
+
+      useEffect(() => {
+        fetchBookings();
+      }, [fetchBookings]);
+
+      const handleReview = async (bookingId: number) => {
+        try {
+          await createReview(bookingId, { rating: reviewRating, comment: reviewComment });
+          setReviewingId(null);
+          setReviewRating(0);
+          setReviewComment('');
+          await fetchBookings();
+        } catch (error) {
+          setBookingsError(getErrorMessage(error, 'Could not save your review.'));
+        }
+      };
+
+      const handleCancelBooking = async (bookingId: number) => {
+        try {
+          setCancellingId(bookingId);
+          await cancelBooking(bookingId);
+          await fetchBookings();
+        } catch (error) {
+          setBookingsError(getErrorMessage(error, 'Could not cancel booking. Try again.'));
+        } finally {
+          setCancellingId(null);
+        }
+      };
   return (
     <section className='space-y-8'>
         <div className="max-w-5xl mx-auto space-y-8">
@@ -128,7 +219,7 @@ const ProfilePage = () => {
                                 </Badge>
                                 <Badge variant="secondary" className="gap-1">
                                     <Heart className="w-3 h-3 fill-current" />
-                                    {favoriteSalons.length} Favorites
+                                    {favoriteCount} Favorites
                                 </Badge>
                             </div>
                         </div>
@@ -155,7 +246,7 @@ const ProfilePage = () => {
             </Card>
 
             {/* Profile Tabs */}
-            <Tabs defaultValue="personal" className="space-y-6">
+            <Tabs key={defaultTab} defaultValue={defaultTab} className="space-y-6">
                 <TabsList className="grid w-full grid-cols-4 h-auto p-1">
                 <TabsTrigger value="personal" className="gap-2 py-3">
                     <User className="w-4 h-4" />
@@ -225,8 +316,8 @@ const ProfilePage = () => {
                             <Input
                             id="phone"
                             type="tel"
-                            value={userFormData.phone}
-                            onChange={(e) => handleInputChange('phone', e.target.value)}
+                            value={userFormData.phoneNumber}
+                            onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                             disabled={!isEditing}
                             className="pl-10"
                             />
@@ -278,37 +369,99 @@ const ProfilePage = () => {
                     </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                    <div className="flex justify-end">
+                      <Button variant="outline" size="sm" onClick={fetchBookings} disabled={bookingsLoading}>
+                        {bookingsLoading ? 'Refreshing...' : 'Refresh'}
+                      </Button>
+                    </div>
+                    {bookingsError && (
+                      <p className="text-sm text-destructive">{bookingsError}</p>
+                    )}
+                    {!bookingsLoading && bookingHistory.length === 0 && !bookingsError && (
+                      <p className="text-sm text-muted-foreground">No bookings yet.</p>
+                    )}
+                    {bookingsLoading && (
+                      <p className="text-sm text-muted-foreground">Loading bookings...</p>
+                    )}
                     {bookingHistory.map((booking) => (
                         <Card key={booking.id} className="border shadow-sm">
                         <CardContent className="p-6">
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2">
-                                <h3 className="font-semibold">{booking.salon}</h3>
-                                <Badge variant={booking.status === 'upcoming' ? 'default' : 'secondary'}>
+                                <h3 className="font-semibold">{booking.Salon?.businessName || 'Salon'}</h3>
+                                <Badge variant={booking.status === 'pending' || booking.status === 'confirmed' ? 'default' : 'secondary'}>
                                     {booking.status}
                                 </Badge>
                                 </div>
-                                <p className="text-sm text-muted-foreground">{booking.service}</p>
+                                <p className="text-sm text-muted-foreground">{booking.service?.name || 'Service'}</p>
                                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                 <span className="flex items-center gap-1">
                                     <Calendar className="w-4 h-4" />
-                                    {new Date(booking.date).toLocaleDateString()}
+                                    {new Date(booking.startAt).toLocaleDateString()}
                                 </span>
-                                <span>{booking.time}</span>
+                                <span>
+                                  {formatTime(booking.startAt, booking.Salon?.timezone)}
+                                </span>
                                 </div>
                             </div>
                             <div className="flex gap-2">
-                                {booking.status === 'upcoming' ? (
+                                {booking.status === 'pending' || booking.status === 'confirmed' ? (
                                 <>
-                                    <Button variant="outline" size="sm">Reschedule</Button>
-                                    <Button variant="destructive" size="sm">Cancel</Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setReschedulingBooking(booking)}
+                                    >
+                                      Reschedule
+                                    </Button>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      disabled={cancellingId === booking.id}
+                                      onClick={() => handleCancelBooking(booking.id)}
+                                    >
+                                      {cancellingId === booking.id ? 'Cancelling...' : 'Cancel'}
+                                    </Button>
                                 </>
                                 ) : (
-                                <Button variant="outline" size="sm">Book Again</Button>
+                                <>
+                                  {booking.status === 'completed' && !booking.review && (
+                                    <Button variant="outline" size="sm" onClick={() => setReviewingId(reviewingId === booking.id ? null : booking.id)}>
+                                      Leave a review
+                                    </Button>
+                                  )}
+                                  {booking.review && <Stars value={booking.review.rating} />}
+                                  {booking.Salon?.id && (
+                                    <Button asChild variant="outline" size="sm">
+                                      <Link to={`/salon/${booking.Salon.id}`}>Book Again</Link>
+                                    </Button>
+                                  )}
+                                </>
                                 )}
                             </div>
                             </div>
+                            {reviewingId === booking.id && (
+                              <div className="mt-4 space-y-3 border-t pt-4">
+                                <div className="flex items-center gap-1" role="radiogroup" aria-label="Rating">
+                                  {[1, 2, 3, 4, 5].map((n) => (
+                                    <button key={n} type="button" role="radio" aria-checked={reviewRating === n} aria-label={`${n} stars`}
+                                      onClick={() => setReviewRating(n)} className="cursor-pointer">
+                                      <Stars value={n <= reviewRating ? 5 : 0} size={24} />
+                                    </button>
+                                  ))}
+                                </div>
+                                <textarea
+                                  value={reviewComment}
+                                  onChange={(e) => setReviewComment(e.target.value)}
+                                  maxLength={1000}
+                                  placeholder="How was your visit? (optional)"
+                                  className="w-full rounded-md border bg-background p-2 text-sm"
+                                  rows={3}
+                                />
+                                <Button size="sm" disabled={reviewRating < 1} onClick={() => handleReview(booking.id)}>Submit review</Button>
+                              </div>
+                            )}
                         </CardContent>
                         </Card>
                     ))}
@@ -326,30 +479,19 @@ const ProfilePage = () => {
                     </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                    {favoriteSalons.map((salon) => (
-                        <Card key={salon.id} className="border shadow-sm">
-                        <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                                <h3 className="font-semibold">{salon.name}</h3>
-                                <p className="text-sm text-muted-foreground">{salon.category}</p>
-                                <div className="flex items-center gap-4 text-sm">
-                                <Badge variant="secondary" className="gap-1">
-                                    ⭐ {salon.rating}
-                                </Badge>
-                                <span className="text-muted-foreground">{salon.visits} visits</span>
-                                </div>
-                            </div>
-                            <div className="flex gap-2">
-                                <Button size="sm" className="bg-gradient-primary">Book Now</Button>
-                                <Button variant="outline" size="sm">
-                                <Heart className="w-4 h-4 fill-current" />
-                                </Button>
-                            </div>
-                            </div>
-                        </CardContent>
-                        </Card>
-                    ))}
+                    {favoritesLoading && <p className="text-sm text-muted-foreground">Loading favorites...</p>}
+                    {!favoritesLoading && favoriteSalons.length === 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        {user.userType === 'user'
+                          ? 'No favorite salons yet. Tap the heart on a salon to keep it here.'
+                          : 'Favorites are available for customer accounts.'}
+                      </p>
+                    )}
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                      {favoriteSalons.map((salon) => (
+                        <SalonCard key={salon.id} salon={salon} />
+                      ))}
+                    </div>
                     </CardContent>
                 </Card>
                 </TabsContent>
@@ -368,105 +510,66 @@ const ProfilePage = () => {
                     <CardContent className="space-y-4">
                         <div className="flex items-center justify-between">
                         <div className="space-y-1">
-                            <Label>Booking Confirmations</Label>
+                            <Label>Booking updates</Label>
                             <p className="text-sm text-muted-foreground">
-                            Receive confirmation emails for new bookings
+                            When a salon confirms, declines or completes your booking
                             </p>
                         </div>
                         <Switch
-                            checked={notifications.bookingConfirmations}
-                            onCheckedChange={(checked) =>
-                            setNotifications(prev => ({ ...prev, bookingConfirmations: checked }))
-                            }
+                            checked={prefs.statusUpdates}
+                            onCheckedChange={(checked) => changePref('statusUpdates', checked)}
                         />
                         </div>
                         <div className="flex items-center justify-between">
                         <div className="space-y-1">
-                            <Label>Promotions & Offers</Label>
+                            <Label>Appointment reminders</Label>
                             <p className="text-sm text-muted-foreground">
-                            Get notified about special deals and promotions
+                            A reminder the day before and one hour before each confirmed appointment
                             </p>
                         </div>
                         <Switch
-                            checked={notifications.promotions}
-                            onCheckedChange={(checked) =>
-                            setNotifications(prev => ({ ...prev, promotions: checked }))
-                            }
+                            checked={prefs.reminders}
+                            onCheckedChange={(checked) => changePref('reminders', checked)}
                         />
                         </div>
-                        <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                            <Label>Appointment Reminders</Label>
-                            <p className="text-sm text-muted-foreground">
-                            Reminders before your scheduled appointments
-                            </p>
-                        </div>
-                        <Switch
-                            checked={notifications.reminders}
-                            onCheckedChange={(checked) =>
-                            setNotifications(prev => ({ ...prev, reminders: checked }))
-                            }
-                        />
-                        </div>
-                        <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                            <Label>New Messages</Label>
-                            <p className="text-sm text-muted-foreground">
-                            Notifications for messages from salons
-                            </p>
-                        </div>
-                        <Switch
-                            checked={notifications.newMessages}
-                            onCheckedChange={(checked) =>
-                            setNotifications(prev => ({ ...prev, newMessages: checked }))
-                            }
-                        />
-                        </div>
+                        {prefsError && <p className="text-sm text-destructive" role="alert">{prefsError}</p>}
                     </CardContent>
                     </Card>
 
-                    {/* Payment Methods */}
-                    <Card className="border-0 shadow-lg">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                        <CreditCard className="w-5 h-5" />
-                        Payment Methods
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Button variant="outline" className="w-full gap-2">
-                        <CreditCard className="w-4 h-4" />
-                        Add Payment Method
-                        </Button>
-                    </CardContent>
-                    </Card>
-
-                    {/* Security */}
-                    <Card className="border-0 shadow-lg">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                        <Shield className="w-5 h-5" />
-                        Security
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        <Button variant="outline" className="w-full justify-start">
-                        Change Password
-                        </Button>
-                        <Button variant="outline" className="w-full justify-start">
-                        Two-Factor Authentication
-                        </Button>
-                        <Button variant="outline" className="w-full justify-start text-destructive hover:text-destructive">
-                        Delete Account
-                        </Button>
-                    </CardContent>
-                    </Card>
+                    <SecuritySettings />
                 </div>
                 </TabsContent>
             </Tabs>
             </div>
+            <RescheduleDialog
+              booking={reschedulingBooking}
+              onClose={() => setReschedulingBooking(null)}
+              onMoved={fetchBookings}
+            />
     </section>
   )
 }
 
-export default ProfilePage
+const ProfilePage = () => {
+  const { user, isAuthChecked, setUser } = useAuth();
+  const [searchParams] = useSearchParams();
+  const tab = searchParams.get('tab');
+  const defaultTab = tab === 'bookings' || tab === 'favorites' || tab === 'settings' ? tab : 'personal';
+
+  if (!isAuthChecked) {
+    return <LoadingSpinner loading singular={false} />;
+  }
+
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+
+  return (
+    <>
+      <Seo title="My profile" noindex />
+      <ProfileContent user={user} setUser={setUser} defaultTab={defaultTab} />
+    </>
+  );
+};
+
+export default ProfilePage;

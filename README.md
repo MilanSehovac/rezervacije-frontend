@@ -1,73 +1,60 @@
-# React + TypeScript + Vite
+# BeautyBook – Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Web aplikacija za online rezervaciju termina u salonima, berbernicama, spa centrima i sl. Korisnici pretražuju salone i zakazuju termine, a vlasnici salona upravljaju uslugama, timom i rezervacijama kroz dashboard.
 
-Currently, two official plugins are available:
+Backend API (Node/Express + MySQL) nalazi se u zasebnom repozitorijumu (`backend`).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Tehnologije
 
-## React Compiler
+- React 19 + TypeScript, Vite
+- React Router 7
+- Tailwind CSS 4, Radix UI, shadcn-style komponente, lucide / heroicons
+- Axios
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Funkcionalnosti
 
-## Expanding the ESLint configuration
+- Javne stranice: početna, pretraga salona, usluge, stranica salona (`/salon/:slug`), pravne stranice
+- Autentikacija (prijava / registracija), profil i sigurnosna podešavanja
+- Kreiranje salona kroz višekoračnu formu (osnovni podaci, detalji, usluge, tim)
+- Dashboard salona: rezervacije, usluge (sa fazama aktivno/pasivno vrijeme), tim, blokirana vremena, ručno zakazivanje, podešavanja
+- Omiljeni saloni, obavještenja, pomjeranje termina
+- Admin pregled salona
+- SEO meta tagovi
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Pokretanje
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Aplikacija se pokreće na `http://localhost:5173`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Okruženje
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Napravi `.env` (ili `.env.development`) fajl:
+
+```
+VITE_API_URL="http://localhost:8000/api"
+```
+
+### Skripte
+
+| Komanda           | Opis                          |
+| ----------------- | ----------------------------- |
+| `npm run dev`     | Razvojni server               |
+| `npm run build`   | Provjera tipova i build       |
+| `npm run preview` | Pregled produkcijskog builda  |
+| `npm run lint`    | ESLint                        |
+
+## Struktura
+
+```
+src/
+  components/   UI, sekcije, salon forme i dashboard, konteksti
+  config/       Axios instanca
+  helpers/      API pozivi i pomoćne funkcije
+  layouts/      Main, Salon i Auth layout
+  pages/        admin, public, salon, user
+  routes/       definicije ruta i ProtectedRoute
 ```

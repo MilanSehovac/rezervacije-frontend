@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button';
 import { ImageWithFallback } from '../ui/ImageWithFallback';
 import { Input } from '../ui/input';
-import { ArrowRight, Calendar, MapPin, Search, Star } from 'lucide-react'
+import { ArrowRight, MapPin, Search } from 'lucide-react'
+import { getSiteStats, type SiteStats } from '../../helpers/publicHelpers';
 
 interface HeroProps {
     onSearch: (query: string, location?: string) => void;
@@ -12,108 +13,96 @@ interface HeroProps {
 const Hero = ({onSearch}: HeroProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [location, setLocation] = useState('');
-  const handleSearch = () => {
-    onSearch(searchQuery, location);
+  const [stats, setStats] = useState<SiteStats | null>(null);
+
+  useEffect(() => {
+    getSiteStats().then(setStats).catch(() => setStats(null));
+  }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSearch(searchQuery.trim(), location.trim());
   };
-  const stats = [
-    { number: '50K+', label: 'Happy Customers' },
-    { number: '10K+', label: 'Partner Salons' },
-    { number: '100+', label: 'Cities' },
-    { number: '500K+', label: 'Bookings Made' }
-  ];
+
+  // Only real numbers, and only the ones worth showing
+  const figures = stats
+    ? [
+        { number: stats.salons, label: stats.salons === 1 ? 'Salon' : 'Salons' },
+        { number: stats.cities, label: stats.cities === 1 ? 'City' : 'Cities' },
+        { number: stats.completedBookings, label: 'Appointments completed' },
+      ].filter((f) => f.number > 0)
+    : [];
 
   return (
-    <section className="relative overflow-hidden bg-gradient-beauty rounded-3xl">
+    <section className="relative overflow-hidden bg-gradient-beauty rounded-3xl" aria-labelledby="hero-title">
         <div className="container mx-auto px-4 py-16 md:py-24">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <div className="space-y-8">
                     <div className="space-y-4">
-                        <Badge className='bg-white/20 text-primary-foreground border-white/30'>
-                            ✨ Book with confidence
+                        <Badge className='border-primary/20 bg-white/80 text-primary'>
+                            Real prices, real opening hours
                         </Badge>
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-                            Book Beauty
+                        <h1 id="hero-title" className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+                            Book salon{' '}
                             <span className="text-gradient-primary block">
-                                Appointments
+                                appointments{' '}
                             </span>
-                            Instantly
+                            online
                         </h1>
                         <p className="text-lg text-muted-foreground leading-relaxed">
-                            Discover and book with the best salons, spas, and beauty professionals 
-                            in your area. Compare prices, read reviews, and book instantly.
+                            Find hair salons, barbers, nail studios and spas, see what each service costs and how long
+                            it takes, and pick a free time that suits you.
                         </p>
                     </div>
 
-                    {/* Search Bar */}
-
-                    <div className="bg-white rounded-2xl p-6 shadow-beauty-md">
+                    <form onSubmit={handleSearch} role="search" className="bg-white rounded-2xl p-6 shadow-beauty-md">
                         <div className="space-y-4">
                             <div className="relative">
-                                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" aria-hidden="true" />
                                 <Input
-                                placeholder="Search for services (e.g., haircut, manicure)"
+                                aria-label="Service or salon"
+                                placeholder="Service or salon (e.g. haircut, manicure)"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="pl-12 h-14 text-base border-0 bg-muted/50 focus:bg-white transition-colors"
                                 />
                             </div>
                             <div className="relative">
-                            <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                            <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" aria-hidden="true" />
                             <Input
-                            placeholder="Enter your location"
+                            aria-label="City"
+                            placeholder="City"
                             value={location}
                             onChange={(e) => setLocation(e.target.value)}
                             className="pl-12 h-14 text-base border-0 bg-muted/50 focus:bg-white transition-colors"
                             />
                             </div>
-                            <Button 
-                            onClick={handleSearch}
-                            className="w-full h-14 bg-gradient-primary text-base font-medium"
-                            >
-                                Find Salons Near Me
+                            <Button type="submit" className="w-full h-14 bg-gradient-primary text-base font-medium">
+                                Search salons
                                 <ArrowRight className="w-5 h-5 ml-2" />
                             </Button>
                         </div>
-                    </div>   
-                    {/* Quick Stats */}
-                    <div className="grid grid-cols-4 gap-4">
-                        {stats.map((stat, index) => (
-                        <div key={index} className="text-center">
-                            <div className="text-xl md:text-2xl font-bold text-primary">{stat.number}</div>
-                            <div className="text-xs text-muted-foreground">{stat.label}</div>
+                    </form>
+
+                    {figures.length > 0 && (
+                      <dl className="flex flex-wrap gap-x-8 gap-y-2">
+                        {figures.map((stat) => (
+                        <div key={stat.label}>
+                            <dd className="text-xl md:text-2xl font-bold text-primary">{stat.number.toLocaleString()}</dd>
+                            <dt className="text-xs text-muted-foreground">{stat.label}</dt>
                         </div>
                         ))}
-                    </div> 
+                      </dl>
+                    )}
                 </div>
-                {/* Hero Image */}
                 <div className="relative">
-                    <div className="relative z-10">
-                        <ImageWithFallback
-                        src="https://images.unsplash.com/photo-1562322140-8baeececf3df?w=600&h=700&fit=crop"
-                        alt="Beauty salon"
-                        className="w-full h-[500px] object-cover rounded-2xl shadow-beauty-lg"
-                        />
-                    </div>
-                    <div className='absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-xl p-4 shadow-beauty'>
-                        <div className="flex items-center gap-2 mb-2">
-                            <div className="w-8 h-8 bg-gradient-primary rounded-full flex items-center justify-center">
-                                <Calendar className="w-4 h-4 text-white" />
-                            </div>
-                            <span className="font-medium">Next Available</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">Today at 2:30 PM</p>
-                    </div>
-                    <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-xl p-4 shadow-beauty">
-                        <div className="flex items-center gap-2 mb-2">
-                            <div className="flex">
-                                {[...Array(5)].map((_, i) => (
-                                <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                ))}
-                            </div>
-                            <span className="font-medium">4.9</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">1,200+ reviews</p>
-                    </div>
+                    <ImageWithFallback
+                    src="https://images.unsplash.com/photo-1562322140-8baeececf3df?w=600&h=700&fit=crop"
+                    alt="Hairdresser styling a client in a salon"
+                    width={600}
+                    height={700}
+                    className="w-full h-[500px] object-cover rounded-2xl shadow-beauty-lg"
+                    />
                 </div>
             </div>
         </div>
