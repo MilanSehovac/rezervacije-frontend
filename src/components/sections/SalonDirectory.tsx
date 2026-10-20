@@ -1,41 +1,38 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '../ui/card.tsx';
 import { Input } from '../ui/input.tsx';
 import { Button } from '../ui/button.tsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select.tsx';
-import { Badge } from '../ui/badge.tsx';
 import { SalonCard } from '../ui/salonCard.tsx';
-import type { Salon } from '../ui/salonCard.tsx';
+import type { SalonProfile } from '../types';
+import { getAllSalons } from '../../helpers/salonHelpers.ts';
 import LoadingSpinner from '../ui/loadingSpinner.tsx'
 import { 
   Search, 
-  MapPin, 
   Star, 
-  Clock,
   Scissors,
   Palette,
   Sparkles,
   SlidersHorizontal
 } from 'lucide-react';
 
-interface SalonDirectoryProps {
-  onSalonSelect: (salonId: string) => void;
-}
-
-export function SalonDirectory({}: SalonDirectoryProps) {
-  const [salons, setSalons] = useState<Salon[]>([]);
+export function SalonDirectory() {
+  const [salons, setSalons] = useState<SalonProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [params] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(params.get('q') ?? '');
+  const cityFilter = (params.get('city') ?? '').trim().toLowerCase();
+  const [selectedCategory, setSelectedCategory] = useState<string>(params.get('category') ?? 'all');
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>('all');
+  const [selectedRating, setSelectedRating] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('rating');
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     const fetchSalons = async () =>{
       try {
-        const res = await fetch(import.meta.env.VITE_API_URL + '/salons')
-        const data = await res.json();
+        const data = await getAllSalons();
         setSalons(data)
       } catch (error) {
         console.log('Error Fetching Data', error)
@@ -53,10 +50,17 @@ export function SalonDirectory({}: SalonDirectoryProps) {
     // Search filter
     if (searchQuery) {
       filtered = filtered.filter(salon => 
-        salon.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        salon.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        salon.services.some(service => service.toLowerCase().includes(searchQuery.toLowerCase()))
+        salon.businessName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (salon.description ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (salon.city ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (salon.address ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        salon.services.some(service => service.name.toLowerCase().includes(searchQuery.toLowerCase()))
       );
+    }
+
+    // City filter (from the home page search)
+    if (cityFilter) {
+      filtered = filtered.filter(salon => (salon.city ?? '').toLowerCase().includes(cityFilter) || (salon.address ?? '').toLowerCase().includes(cityFilter));
     }
 
     // Category filter
@@ -69,24 +73,26 @@ export function SalonDirectory({}: SalonDirectoryProps) {
       filtered = filtered.filter(salon => salon.priceRange === selectedPriceRange);
     }
 
-    // Sort
-    filtered.sort((a, b) => {
+    // Minimum rating filter (salons without reviews have no rating and are excluded)
+    if (selectedRating !== 'all') {
+      filtered = filtered.filter(salon => (salon.rating ?? 0) >= Number(selectedRating));
+    }
+
+    // Sort a copy: never mutate the state array
+    const avgPrice = (s: SalonProfile) => (s.minPrice != null && s.maxPrice != null ? (s.minPrice + s.maxPrice) / 2 : Infinity);
+    return [...filtered].sort((a, b) => {
       switch (sortBy) {
         case 'rating':
-          return b.rating - a.rating;
+          return (b.rating ?? 0) - (a.rating ?? 0) || (b.reviewCount ?? 0) - (a.reviewCount ?? 0);
         case 'price-low':
-          return a.priceRange.length - b.priceRange.length;
+          return avgPrice(a) - avgPrice(b);
         case 'price-high':
-          return b.priceRange.length - a.priceRange.length;
-        case 'distance':
-          return parseFloat(a.distance?.replace(' mi', '') || '0') - parseFloat(b.distance?.replace(' mi', '') || '0');
+          return (avgPrice(b) === Infinity ? -1 : avgPrice(b)) - (avgPrice(a) === Infinity ? -1 : avgPrice(a));
         default:
           return 0;
       }
     });
-
-    return filtered;
-  }, [salons, searchQuery, selectedCategory, selectedPriceRange, sortBy]);
+  }, [salons, searchQuery, cityFilter, selectedCategory, selectedPriceRange, selectedRating, sortBy]);
 
   const categories = [
     { value: 'all', label: 'All Categories', icon: null },
@@ -153,12 +159,6 @@ export function SalonDirectory({}: SalonDirectoryProps) {
                         Rating
                       </div>
                     </SelectItem>
-                    <SelectItem value="distance">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        Distance
-                      </div>
-                    </SelectItem>
                     <SelectItem value="price-low">Price: Low to High</SelectItem>
                     <SelectItem value="price-high">Price: High to Low</SelectItem>
                   </SelectContent>
@@ -168,7 +168,7 @@ export function SalonDirectory({}: SalonDirectoryProps) {
 
             {/* Extended Filters */}
             {showFilters && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
                 <div>
                   <label className="text-sm font-medium mb-2 block">Price Range</label>
                   <Select value={selectedPriceRange} onValueChange={setSelectedPriceRange}>
@@ -177,31 +177,16 @@ export function SalonDirectory({}: SalonDirectoryProps) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Prices</SelectItem>
-                      <SelectItem value="$">$ ($20-40)</SelectItem>
-                      <SelectItem value="$$">$$ ($40-80)</SelectItem>
-                      <SelectItem value="$$$">$$$ ($80+)</SelectItem>
+                      <SelectItem value="$">$ (average under $25)</SelectItem>
+                      <SelectItem value="$$">$$ (average $25 - $60)</SelectItem>
+                      <SelectItem value="$$$">$$$ (average over $60)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Availability</label>
-                  <Select defaultValue="all">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Any Time</SelectItem>
-                      <SelectItem value="today">Available Today</SelectItem>
-                      <SelectItem value="tomorrow">Available Tomorrow</SelectItem>
-                      <SelectItem value="week">This Week</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
                   <label className="text-sm font-medium mb-2 block">Rating</label>
-                  <Select defaultValue="all">
+                  <Select value={selectedRating} onValueChange={setSelectedRating}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -228,11 +213,6 @@ export function SalonDirectory({}: SalonDirectoryProps) {
               {selectedCategory !== 'all' && ` in ${categories.find(c => c.value === selectedCategory)?.label}`}
             </p>
             
-            {/* Open Now Filter */}
-            <Badge variant="outline" className="gap-1 cursor-pointer hover:bg-muted">
-              <Clock className="w-3 h-3" />
-              {filteredSalons.filter(s => s.isOpen).length} open now
-            </Badge>
           </div>
 
           {/* Salon Grid */}

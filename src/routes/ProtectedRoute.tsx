@@ -4,13 +4,13 @@ import LoadingSpinner from '../components/ui/loadingSpinner'
 
 type Props = {
     children: React.ReactNode;
-    roles?: number[];
+    roles?: string[];
   };
 
 const ProtectedRoute = ({ children, roles }: Props) => {
   const { user, isAuthChecked } = useAuth()
 
-  if (!isAuthChecked) return <LoadingSpinner loading={isAuthChecked} singular={false} />
+  if (!isAuthChecked) return <LoadingSpinner loading={!isAuthChecked} singular={false} />
 
   if (!user) return <Navigate to="/" replace />
 

@@ -12,6 +12,6 @@ export const register = async (formData: AuthFormData) => {
 };
 
 export const logout = async (setUser: (user: null) => void) => {
-  await instance.post("/auth/logout");
+  await instance.post("/users/logout");
   setUser(null);
 };

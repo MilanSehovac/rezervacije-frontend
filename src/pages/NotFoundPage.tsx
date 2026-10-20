@@ -1,20 +1,18 @@
 import { ArrowLeft } from "lucide-react"
 import { Link } from "react-router-dom"
+import { Seo } from "../components/Seo"
+
 const NotFound = () => {
   return (
-    <div className="h-full w-full flex justify-center items-center bg-gradient-beauty text-primary  flex-col gap-y-5 px-5 py-16 rounded-3xl">
-      <h1 className="font-bold text-6xl">
-        404 NotFound
-      </h1>
-      <p className="font-600 text-4xl">
-        This Page Doesn't Exist
-      </p>
-      <Link to="/" className="hover:underline hover:underline-offset-4 text-3xl flex items-center gap-1">
-        <ArrowLeft />
-        Go Back
+    <div className="flex w-full flex-col items-center justify-center gap-y-5 rounded-3xl bg-gradient-beauty px-5 py-16 text-center text-primary">
+      <Seo title="Page not found" noindex />
+      <h1 className="text-5xl font-bold md:text-6xl">404</h1>
+      <p className="text-2xl md:text-3xl">This page does not exist</p>
+      <Link to="/" className="flex items-center gap-1 text-xl hover:underline hover:underline-offset-4">
+        <ArrowLeft aria-hidden="true" />
+        Back to the home page
       </Link>
     </div>
-    
   )
 }
 

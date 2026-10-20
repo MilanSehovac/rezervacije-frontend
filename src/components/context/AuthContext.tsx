@@ -1,10 +1,11 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import instance from "../../confing/AxiosConfig";
-import type { UserProfile } from "../types";
+import type { SalonProfile, UserProfile } from "../types";
 
-type User = any;
-type Salon = any;
+type User = UserProfile;
+// /users/me returns the salon row only (no services or team)
+type Salon = Pick<SalonProfile, "id" | "businessName"> & Partial<SalonProfile>;
 
 type AuthContextType = {
   user: User | null;
@@ -12,10 +13,12 @@ type AuthContextType = {
   setUser: (u: User | null) => void;
   isAuthChecked: boolean;
   logout: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
@@ -24,25 +27,28 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [salon, setSalon] = useState<any | null>(null)
+  const [salon, setSalon] = useState<Salon | null>(null)
   const [isAuthChecked, setIsAuthChecked] = useState(false);
+
+  const refreshSession = useCallback(async () => {
+    try {
+      const res = await instance.get("/users/me");
+      setUser(res.data.user as UserProfile);
+      setSalon(res.data.salon);
+    } catch {
+      setUser(null);
+      setSalon(null);
+    }
+  }, []);
 
   useEffect(() => {
     const getMe = async () => {
-      try {
-        const res = await instance.get("/users/me");
-        setUser(res.data.user as UserProfile);
-        setSalon(res.data.salon)
-      } catch {
-        setUser(null);
-        setSalon(null)
-      } finally {
-        setIsAuthChecked(true);
-      }
+      await refreshSession();
+      setIsAuthChecked(true);
     };
 
     getMe();
-  }, []);
+  }, [refreshSession]);
 
   const handleLogout = async () => {
     try {
@@ -51,6 +57,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Logout failed", e);
     } finally {
       setUser(null);
+      setSalon(null);
     }
   };
 
@@ -62,6 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser,
         isAuthChecked,
         logout: handleLogout,
+        refreshSession,
       }}
     >
       {children}
