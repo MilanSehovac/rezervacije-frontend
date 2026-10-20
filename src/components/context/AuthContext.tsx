@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import instance from "../../confing/AxiosConfig";
+import instance from "../../config/AxiosConfig";
 import type { SalonProfile, UserProfile } from "../types";
 
 type User = UserProfile;

@@ -1,4 +1,4 @@
-import instance from "../confing/AxiosConfig";
+import instance from "../config/AxiosConfig";
 import type { AuthFormData } from "../components/auth/AuthModal";
 
 export const login = async (email: string, password: string) => {

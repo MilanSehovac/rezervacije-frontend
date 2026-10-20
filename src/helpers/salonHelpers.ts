@@ -1,4 +1,4 @@
-import instance from "../confing/AxiosConfig";
+import instance from "../config/AxiosConfig";
 import type { SalonFormData, TeamMember } from "../components/types";
 
 export type SalonCreateRequest = SalonFormData & {

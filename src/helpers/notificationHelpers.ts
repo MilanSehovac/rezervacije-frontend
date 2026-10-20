@@ -1,4 +1,4 @@
-import instance from "../confing/AxiosConfig";
+import instance from "../config/AxiosConfig";
 
 export type AppNotification = {
   id: number;

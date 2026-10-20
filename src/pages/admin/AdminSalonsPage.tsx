@@ -3,7 +3,7 @@ import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import LoadingSpinner from "../../components/ui/loadingSpinner";
-import instance from "../../confing/AxiosConfig";
+import instance from "../../config/AxiosConfig";
 import { getErrorMessage } from "../../helpers/errors";
 import type { SalonService } from "../../components/types";
 import { Seo } from "../../components/Seo";

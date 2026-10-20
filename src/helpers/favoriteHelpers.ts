@@ -1,4 +1,4 @@
-import instance from "../confing/AxiosConfig";
+import instance from "../config/AxiosConfig";
 import type { SalonProfile } from "../components/types";
 
 export const getFavoriteIds = async (): Promise<number[]> => {

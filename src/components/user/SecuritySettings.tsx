@@ -4,7 +4,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import instance from "../../confing/AxiosConfig";
+import instance from "../../config/AxiosConfig";
 import { getErrorMessage } from "../../helpers/errors";
 import { useAuth } from "../context/AuthContext";
 
